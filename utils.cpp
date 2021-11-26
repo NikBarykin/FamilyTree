@@ -21,25 +21,3 @@ std::vector<std::string> Split(std::string_view sv, const std::string& delimiter
     }
     return result;
 }
-
-double Rand01(unsigned seed) {
-    mt19937 rnd(seed);
-    return static_cast<double>(rnd()) / mt19937::max();
-}
-
-Svg::Color RandColor(unsigned seed) {
-    mt19937 rnd(seed);
-    Svg::Rgb result;
-    result.red = rnd() % 256;
-    result.green = rnd() % 256;
-    result.blue = rnd() % 256;
-    return result;
-}
-
-Svg::Rgb MergeRgb(Svg::Rgb lhs, Svg::Rgb rhs) {
-    return Svg::Rgb{
-            (lhs.red + rhs.red) / 2,
-            (lhs.green + rhs.green) / 2,
-            (lhs.blue + rhs.blue) / 2,
-    };
-}
