@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "svg.h"
 #include "utils.h"
 
@@ -15,6 +14,8 @@
 #include <random>
 #include <ctime>
 #include <algorithm>
+#include <fstream>
+#include <sstream>
 
 
 template<typename NodeId, size_t NParents>
@@ -27,18 +28,32 @@ public:
         std::optional<std::array<NodeId, NParents>> parent_ids;
 
         std::vector<NodeId> GetParents() const;
-//        static Node ParseFrom()
+        friend bool operator ==(const Node& lhs, const Node& rhs) {
+            return std::tie(lhs.id, lhs.parent_ids) == std::tie(rhs.id, rhs.parent_ids);
+        }
+//        static Node ParseFrom(std::istream& input);
     };
 private:
     std::unordered_map<NodeId, std::vector<NodeId>> children_;
     std::unordered_map<NodeId, Node> nodes_;
 public:
+    // Make string from NodeId using operator <<(ostream&, NodeId)
+    static std::string MakeString(const NodeId& node_id);
 
+    FamilyTree() = default;
+    template<typename NodeIt>
+    FamilyTree(NodeIt begin, NodeIt end);
+
+    size_t GetSize() const { return nodes_.size(); }
+    // TODO: add node by rvalue
     FamilyTree& AddNode(const Node& new_node);
+    // Getters
     const Node* GetNode(const NodeId& node_id) const;
     std::vector<NodeId> GetChildren(const NodeId& node_id) const;
-    //    template<typename NodeIt>
-//    FamilyTree(NodeIt begin, NodeIt end);
+    // Get all nodes in UNDEFINED (because we get it from unordered map) order
+    std::vector<Node> GetNodes() const;
+    std::vector<Node> GetNodesBreastFirst() const;
+    // TODO: add breast-first iterators
     // Walkers
     template<typename NodeVisitor>
     void TraverseBreastFirst(NodeVisitor node_visitor) const;
@@ -67,23 +82,47 @@ public:
     Svg::Document RenderSvg() const;
 
     // side methods
-//    static FamilyTree Merge(const FamilyTree& lhs, const FamilyTree& rhs);
-//    friend bool operator == (const FamilyTree& lhs, const FamilyTree& rhs);
+    static FamilyTree Merge(const FamilyTree& lhs, const FamilyTree& rhs);
+    friend bool operator == (const FamilyTree& lhs, const FamilyTree& rhs) { return lhs.nodes_ == rhs.nodes_; }
 
-//    void PrintTo(std::ostream& output) const;
-//    void SaveTo(const std::string& filename) const;
-//    static FamilyTree ParseFrom(std::istream& input);
+    void PrintTo(std::ostream& output) const;
+    void SaveTo(const std::string& filename) const;
+    // TODO: implement
+    //    static FamilyTree ParseFrom(std::istream& input);
 //    static FamilyTree OpenFrom(const std::string& filename);
 };
 
 
 // Implementations
+// TODO: split into several header files
 template<typename NodeId, size_t NParents>
 std::vector<NodeId> FamilyTree<NodeId, NParents>::Node::GetParents() const {
     if (parent_ids) {
         return {parent_ids->begin(), parent_ids->end()};
     } else {
         return {};
+    }
+}
+//
+//template<typename NodeId, size_t NParents>
+//typename FamilyTree<NodeId, NParents>::Node FamilyTree<NodeId, NParents>::Node::ParseFrom(std::istream &input) {
+//
+//}
+
+
+template<typename NodeId, size_t NParents>
+std::string FamilyTree<NodeId, NParents>::MakeString(const NodeId &node_id) {
+    std::stringstream ss;
+    ss << node_id;
+    return ss.str();
+}
+
+
+template<typename NodeId, size_t NParents>
+template<typename NodeIt>
+FamilyTree<NodeId, NParents>::FamilyTree(NodeIt begin, NodeIt end) {
+    for (auto it = begin; it != end; ++it) {
+        AddNode(*it);
     }
 }
 
@@ -105,6 +144,7 @@ FamilyTree<NodeId, NParents>& FamilyTree<NodeId, NParents>::AddNode(const Node& 
     return *this;
 }
 
+
 template<typename NodeId, size_t NParents>
 const typename FamilyTree<NodeId, NParents>::Node* FamilyTree<NodeId, NParents>::GetNode(
         const NodeId &node_id) const {
@@ -120,6 +160,29 @@ template<typename NodeId, size_t NParents>
 std::vector<NodeId> FamilyTree<NodeId, NParents>::GetChildren(const NodeId &node_id) const {
     auto it = children_.find(node_id);
     return it != children_.end() ? it->second : std::vector<NodeId>{};
+}
+
+
+template<typename NodeId, size_t NParents>
+std::vector<typename FamilyTree<NodeId, NParents>::Node> FamilyTree<NodeId, NParents>::GetNodes() const {
+    std::vector<Node> nodes;
+    nodes.reserve(nodes_.size());
+    for (const auto& [_, node] : nodes_) {
+        nodes.push_back(node);
+    }
+    return nodes;
+}
+
+
+template<typename NodeId, size_t NParents>
+std::vector<typename FamilyTree<NodeId, NParents>::Node> FamilyTree<NodeId, NParents>::GetNodesBreastFirst() const {
+    std::vector<Node> nodes;
+    nodes.reserve(GetSize());
+    auto node_adder = [&nodes](const Node& node) {
+        nodes.push_back(node);
+    };
+    TraverseBreastFirst(node_adder);
+    return nodes;
 }
 
 
@@ -181,6 +244,7 @@ Svg::Color FamilyTree<NodeId, NParents>::GenerateDefaultColor() {
         .blue = gen_rand_channel(),
     };
 }
+
 
 template<typename NodeId, size_t NParents>
 template<typename ColorIt>
@@ -289,7 +353,7 @@ Svg::Document FamilyTree<NodeId, NParents>::RenderSvg() const {
                                   .SetCenter(node_pos)
                                   .SetStrokeColor("black")
                                   .SetFillColor(colors[node.id]));
-        tree_doc.Add(Svg::Text{}.SetData(node.id)
+        tree_doc.Add(Svg::Text{}.SetData(MakeString(node.id))
                                 .SetPoint({node_pos.x + RENDER_NODE_RADIUS, node_pos.y})
                                 .SetStrokeColor("black")
                                 .SetFillColor("black")
@@ -324,4 +388,53 @@ std::unordered_set<NodeId> FamilyTree<NodeId, NParents>::LowestCommonAncestors(
         }
     }
     return lowest_common_ancestors;
+}
+
+
+template<typename NodeId, size_t NParents>
+FamilyTree<NodeId, NParents> FamilyTree<NodeId, NParents>::Merge(
+        const FamilyTree<NodeId, NParents> &lhs, const FamilyTree<NodeId, NParents> &rhs) {
+    std::vector<Node> new_tree_nodes;
+    auto check_ambiguity = [&lhs, &rhs](const NodeId& node_id) -> bool {
+        auto l_node_ptr = lhs.GetNode(node_id);
+        auto r_node_ptr = rhs.GetNode(node_id);
+        bool no_ambiguity = l_node_ptr == nullptr || r_node_ptr == nullptr || *l_node_ptr == *r_node_ptr;
+        return !no_ambiguity;
+    };
+    bool ambiguity = false;
+    for (const Node& node : lhs.GetNodes()) {
+        ambiguity |= check_ambiguity(node.id);
+        new_tree_nodes.push_back(node);
+    }
+    for (const Node& node : rhs.GetNodes()) {
+        ambiguity |= check_ambiguity(node.id);
+        if (lhs.GetNode(node.id) == nullptr) {
+            new_tree_nodes.push_back(node);
+        }
+    }
+    if (ambiguity) {
+        // TODO: make more informative
+        throw std::runtime_error("Ambiguity in merging trees, doesn't know hot to solve");
+    }
+    return FamilyTree(std::make_move_iterator(new_tree_nodes.begin()),
+                      std::make_move_iterator(new_tree_nodes.end()));
+}
+
+
+template<typename NodeId, size_t NParents>
+void FamilyTree<NodeId, NParents>::PrintTo(std::ostream &output) const {
+    for (const Node& node : GetNodesBreastFirst()) {
+        output << node.id;
+        for (const NodeId& parent_id : node.GetParents()) {
+            output << " " << parent_id;
+        }
+        output << std::endl;
+    }
+}
+
+
+template<typename NodeId, size_t NParents>
+void FamilyTree<NodeId, NParents>::SaveTo(const std::string &filename) const {
+    std::ofstream fout(filename);
+    PrintTo(fout);
 }
