@@ -60,8 +60,9 @@ namespace FamilyTree {
 // We assume that NodeId is a light type,
 // which means we shouldn't worry about resources its copying takes
     private:
-        std::unordered_map<NodeId, std::unordered_set<NodeId>> children_;
+//        std::unordered_map<NodeId, std::unordered_set<NodeId>> children_;
         std::unordered_map<NodeId, Node> nodes_;
+        std::vector<NodeId> birth_order_;
         // Make string from NodeId using operator <<(ostream&, NodeId)
         static std::string MakeString(const NodeId &node_id);
     public:
@@ -79,41 +80,41 @@ namespace FamilyTree {
         // Getters
         const Node *GetNode(const NodeId &node_id) const;
 
-        std::unordered_set<NodeId> GetChildren(const NodeId &node_id) const;
-        std::unordered_set<NodeId> GetParentlessNodes() const;
+//        std::unordered_set<NodeId> GetChildren(const NodeId &node_id) const;
+//        std::unordered_set<NodeId> GetParentlessNodes() const;
 
         // Get all nodes in UNDEFINED order (because we get it from unordered map)
         std::vector<Node> GetNodes() const;
 
 
-        // TODO: add Breadth-first iterators
-        // Walkers
-        template<typename NodeVisitor>
-        void TraverseBreadthFirst(NodeVisitor node_visitor) const;
-
-        std::vector<Node> GetNodesBreadthFirst() const;
-
-    private:
-        template<typename NodeVisitor>
-        void TraverseDepthFirstImpl(const NodeId& node_id, NodeVisitor node_visitor,
-                                    std::unordered_set<NodeId>& visited_nodes) const;
-
-    public:
-
-        template<typename NodeVisitor>
-        void TraverseDepthFirst(NodeVisitor node_visitor) const;
-
-        std::vector<Node> GetNodesDepthFirst() const;
-
-    private:
-        void TraverseInTopologicalOrderImpl(const NodeId& node_id, std::vector<NodeId>& top_order,
-                                            std::unordered_set<NodeId>& visited_nodes) const;
-
-    public:
-        template<typename NodeVisitor>
-        void TraverseInTopologicalOrder(NodeVisitor node_visitor) const;
-
-        std::vector<Node> GetNodesInTopologicalOrder() const;
+//        // TODO: add Breadth-first iterators
+//        // Walkers
+//        template<typename NodeVisitor>
+//        void TraverseBreadthFirst(NodeVisitor node_visitor) const;
+//
+////        std::vector<Node> GetNodesBreadthFirst() const;
+//
+//    private:
+//        template<typename NodeVisitor>
+//        void TraverseDepthFirstImpl(const NodeId& node_id, NodeVisitor node_visitor,
+//                                    std::unordered_set<NodeId>& visited_nodes) const;
+//
+//    public:
+//
+//        template<typename NodeVisitor>
+//        void TraverseDepthFirst(NodeVisitor node_visitor) const;
+//
+////        std::vector<Node> GetNodesDepthFirst() const;
+//
+//    private:
+//        void TraverseInTopologicalOrderImpl(const NodeId& node_id, std::vector<NodeId>& top_order,
+//                                            std::unordered_set<NodeId>& visited_nodes) const;
+//
+//    public:
+//        template<typename NodeVisitor>
+//        void TraverseInTopologicalOrder(NodeVisitor node_visitor) const;
+//
+////        std::vector<Node> GetNodesInTopologicalOrder() const;
 
         template<typename NodeVisitor>
         void TraverseAncestorsBreadthFirst(const NodeId &start_node,
@@ -254,13 +255,6 @@ namespace FamilyTree {
 
 // Tree
 namespace FamilyTree {
-//
-//template<typename NodeId, size_t NParents>
-//Node<NodeId, NParents> Tree<NodeId, NParents>::Node::ParseFrom(std::istream &input) {
-//
-//}
-
-
     template<typename NodeId, size_t NParents>
     std::string Tree<NodeId, NParents>::MakeString(const NodeId &node_id) {
         std::stringstream ss;
@@ -288,10 +282,8 @@ namespace FamilyTree {
                 throw std::runtime_error("Unknown parent id");
             }
         }
-        for (const NodeId &parent_id: new_node.GetParents()) {
-            children_[parent_id].insert(new_node.id);
-        }
         nodes_.emplace(new_node.id, new_node);
+        birth_order_.push_back(new_node.id);
         return *this;
     }
 
@@ -308,145 +300,11 @@ namespace FamilyTree {
 
 
     template<typename NodeId, size_t NParents>
-    std::unordered_set<NodeId> Tree<NodeId, NParents>::GetChildren(const NodeId &node_id) const {
-        auto it = children_.find(node_id);
-        return it != children_.end() ? it->second : std::unordered_set<NodeId>{};
-    }
-
-
-    template<typename NodeId, size_t NParents>
-    std::unordered_set<NodeId> Tree<NodeId, NParents>::GetParentlessNodes() const {
-        std::unordered_set<NodeId> parentless_nodes;
-        for (const auto& [node_id, node] : nodes_) {
-            if (!node.parent_ids) {
-                parentless_nodes.insert(node_id);
-            }
-        }
-        return parentless_nodes;
-    }
-
-
-    template<typename NodeId, size_t NParents>
     std::vector<Node<NodeId, NParents>> Tree<NodeId, NParents>::GetNodes() const {
         std::vector<Node> nodes;
-        nodes.reserve(nodes_.size());
-        for (const auto&[_, node]: nodes_) {
-            nodes.push_back(node);
+        for (const NodeId &node_id: birth_order_) {
+            nodes.push_back(*GetNode(node_id));
         }
-        return nodes;
-    }
-
-
-    template<typename NodeId, size_t NParents>
-    std::vector<Node<NodeId, NParents>> Tree<NodeId, NParents>::GetNodesBreadthFirst() const {
-        std::vector<Node> nodes;
-        nodes.reserve(GetSize());
-        auto node_adder = [&nodes](const Node &node) {
-            nodes.push_back(node);
-        };
-        TraverseBreadthFirst(node_adder);
-        return nodes;
-    }
-
-
-    template<typename NodeId, size_t NParents>
-    template<typename NodeVisitor>
-    void Tree<NodeId, NParents>::TraverseBreadthFirst(NodeVisitor node_visitor) const {
-        std::queue<NodeId> node_order;
-        std::unordered_set<NodeId> considered_nodes;
-        for (const auto&[node_id, node]: nodes_) {
-            if (!node.parent_ids) {
-                node_order.push(node_id);
-                considered_nodes.insert(node_id);
-            }
-        }
-        while (!node_order.empty()) {
-            NodeId node_id = node_order.front();
-            node_order.pop();
-            node_visitor(*GetNode(node_id));
-            for (const NodeId &child_id: GetChildren(node_id)) {
-                if (!considered_nodes.count(child_id)) {
-                    node_order.push(child_id);
-                    considered_nodes.insert(child_id);
-                }
-            }
-        }
-    }
-
-
-    template<typename NodeId, size_t NParents>
-    template<typename NodeVisitor>
-    void Tree<NodeId, NParents>::TraverseDepthFirstImpl(const NodeId &node_id, NodeVisitor node_visitor,
-                                                        std::unordered_set<NodeId> &visited_nodes) const {
-        node_visitor(*GetNode(node_id));
-        visited_nodes.insert(node_id);
-        for (const NodeId& child_id : GetChildren(node_id)) {
-            if (!visited_nodes.count(child_id)) {
-                TraverseDepthFirstImpl(child_id, node_visitor, visited_nodes);
-            }
-        }
-    }
-
-
-    template<typename NodeId, size_t NParents>
-    template<typename NodeVisitor>
-    void Tree<NodeId, NParents>::TraverseDepthFirst(NodeVisitor node_visitor) const {
-        std::unordered_set<NodeId> visited_nodes;
-        for (const NodeId& start_node_id : GetParentlessNodes()) {
-            TraverseDepthFirstImpl(start_node_id, node_visitor, visited_nodes);
-        }
-    }
-
-
-    template<typename NodeId, size_t NParents>
-    std::vector<Node<NodeId, NParents>> Tree<NodeId, NParents>::GetNodesDepthFirst() const {
-        std::vector<Node> nodes;
-        nodes.reserve(GetSize());
-        auto node_adder = [&nodes](const Node &node) {
-            nodes.push_back(node);
-        };
-        TraverseDepthFirst(node_adder);
-        return nodes;
-    }
-
-
-    template<typename NodeId, size_t NParents>
-    void Tree<NodeId, NParents>::TraverseInTopologicalOrderImpl(const NodeId &node_id, std::vector<NodeId>& top_order,
-                                                                std::unordered_set<NodeId> &visited_nodes) const {
-        visited_nodes.insert(node_id);
-        for (const NodeId& child_id : GetChildren(node_id)) {
-            if (!visited_nodes.count(child_id)) {
-                TraverseInTopologicalOrderImpl(child_id, top_order, visited_nodes);
-            }
-        }
-        top_order.push_back(node_id);
-    }
-
-
-    template<typename NodeId, size_t NParents>
-    template<typename NodeVisitor>
-    void Tree<NodeId, NParents>::TraverseInTopologicalOrder(NodeVisitor node_visitor) const {
-        std::unordered_set<NodeId> visited_nodes;
-        std::vector<NodeId> top_order;
-        top_order.reserve(GetSize());
-        for (const NodeId& start_node_id : GetParentlessNodes()) {
-            TraverseInTopologicalOrderImpl(start_node_id, top_order, visited_nodes);
-        }
-        std::reverse(top_order.begin(), top_order.end());
-        for (const NodeId& node_id : top_order) {
-            node_visitor(*GetNode(node_id));
-        }
-    }
-
-
-    template<typename NodeId, size_t NParents>
-    std::vector<Node<NodeId, NParents>> Tree<NodeId, NParents>::GetNodesInTopologicalOrder() const {
-        std::vector<Node> nodes;
-        nodes.reserve(GetSize());
-        auto node_adder = [&nodes](const Node &node) {
-            nodes.push_back(node);
-        };
-        TraverseInTopologicalOrder(node_adder);
         return nodes;
     }
 
@@ -515,7 +373,7 @@ namespace FamilyTree {
     template<typename NodeId, size_t NParents>
     std::unordered_map<NodeId, Svg::Color> Tree<NodeId, NParents>::CalculateColors() const {
         std::unordered_map<NodeId, Svg::Color> colors;
-        auto color_calculator = [& colors](const Node &node) {
+        for (const Node &node: GetNodes()) {
             if (!node.parent_ids) {
                 colors[node.id] = GenerateDefaultColor();
             } else {
@@ -526,8 +384,7 @@ namespace FamilyTree {
                 }
                 colors[node.id] = InheritColor(begin(parent_colors), end(parent_colors));
             }
-        };
-        TraverseInTopologicalOrder(color_calculator);
+        }
         return colors;
     }
 
@@ -537,7 +394,7 @@ namespace FamilyTree {
         std::vector<std::vector<NodeId>> nodes_by_level;
         // TODO: create separate function for level calculation
         std::unordered_map<NodeId, size_t> levels;
-        auto node_processor = [&nodes_by_level, &levels](const Node &node) {
+        for (const Node &node: GetNodes()) {
             size_t node_level = 0;
             for (const NodeId &parent_id: node.GetParents()) {
                 node_level = std::max(node_level, levels[parent_id] + 1);
@@ -548,7 +405,6 @@ namespace FamilyTree {
             nodes_by_level[node_level].push_back(node.id);
             levels[node.id] = node_level;
         };
-        TraverseInTopologicalOrder(node_processor);
         std::unordered_map<NodeId, Svg::Point> positions;
         auto create_even_distribution = [](double min_val, double max_val, size_t n_points) -> std::vector<double> {
             std::vector<double> points(n_points);
@@ -582,7 +438,7 @@ namespace FamilyTree {
         Svg::Document tree_doc;
         auto colors = CalculateColors();
         auto positions = CalculatePositions();
-        auto node_renderer = [&tree_doc, &colors, &positions](const Node &node) {
+        for (const Node &node: GetNodes()) {
             Svg::Point node_pos = positions[node.id];
             for (const NodeId &parent_id: node.GetParents()) {
                 tree_doc.Add(Svg::Polyline{}.AddPoint(positions[parent_id])
@@ -599,7 +455,6 @@ namespace FamilyTree {
                                  .SetFillColor("black")
                                  .SetFontSize(RENDER_NODE_RADIUS));
         };
-        TraverseInTopologicalOrder(node_renderer);
         return tree_doc;
     }
 
@@ -635,14 +490,14 @@ namespace FamilyTree {
     Tree<NodeId, NParents> Tree<NodeId, NParents>::Merge(
             const Tree<NodeId, NParents> &lhs, const Tree<NodeId, NParents> &rhs) {
         Tree<NodeId, NParents> resulting_tree;
-        for (const Node& node: lhs.GetNodesInTopologicalOrder()) {
+        for (const Node &node: lhs.GetNodes()) {
             if (rhs.GetNode(node.id) && node != *rhs.GetNode(node.id)) {
                 throw std::runtime_error("Both trees have node " + MakeString(node.id) +
                                          " versions that cannot be merged");
             }
             resulting_tree.AddNode(node);
         }
-        for (const Node& node : rhs.GetNodesInTopologicalOrder()) {
+        for (const Node &node: rhs.GetNodes()) {
             if (!lhs.GetNode(node.id)) {
                 resulting_tree.AddNode(node);
             }
@@ -654,7 +509,7 @@ namespace FamilyTree {
     Tree<NodeId, NParents> Tree<NodeId, NParents>::ParseFrom(const std::string &input) {
         std::stringstream input_stream(input);
         std::vector<Node> nodes;
-        for (std::string line; std::getline(input_stream, line); ) {
+        for (std::string line; std::getline(input_stream, line);) {
             if (line.empty()) {
                 continue;
             }
@@ -664,12 +519,12 @@ namespace FamilyTree {
     }
 
     template<typename NodeId, size_t NParents>
-    bool operator ==(const Tree<NodeId, NParents>& lhs,
-                     const Tree<NodeId, NParents>& rhs) {
+    bool operator==(const Tree<NodeId, NParents> &lhs,
+                    const Tree<NodeId, NParents> &rhs) {
         if (lhs.GetSize() != rhs.GetSize()) {
             return false;
         }
-        for (const Node<NodeId, NParents>& node : lhs.GetNodes()) {
+        for (const Node<NodeId, NParents> &node: lhs.GetNodes()) {
             auto r_node_ptr = rhs.GetNode(node.id);
             if (!r_node_ptr || *r_node_ptr != node) {
                 return false;
@@ -679,43 +534,21 @@ namespace FamilyTree {
     }
 
     template<typename NodeId, size_t NParents>
-    bool operator !=(const Tree<NodeId, NParents>& lhs,
-                     const Tree<NodeId, NParents>& rhs) {
+    bool operator!=(const Tree<NodeId, NParents> &lhs,
+                    const Tree<NodeId, NParents> &rhs) {
         return !(lhs == rhs);
     }
 
     template<typename NodeId, size_t NParents>
-    std::ostream& operator <<(std::ostream& output,
-                              const Tree<NodeId, NParents>& tree) {
-        auto node_printer = [&output](const Node<NodeId, NParents>& node) {
+    std::ostream &operator<<(std::ostream &output,
+                             const Tree<NodeId, NParents> &tree) {
+        for (const Node<NodeId, NParents>& node : tree.GetNodes()) {
             output << node.id;
-            for (const NodeId& parent_id : node.GetParents()) {
+            for (const NodeId &parent_id: node.GetParents()) {
                 output << " " << parent_id;
             }
             output << std::endl;
         };
-        tree.TraverseInTopologicalOrder(node_printer);
         return output;
     }
-
-
-    //
-//
-//    template<typename NodeId, size_t NParents>
-//    void Tree<NodeId, NParents>::PrintTo(std::ostream &output) const {
-//        for (const Node &node: GetNodesBreadthFirst()) {
-//            output << node.id;
-//            for (const NodeId &parent_id: node.GetParents()) {
-//                output << " " << parent_id;
-//            }
-//            output << std::endl;
-//        }
-//    }
-//
-//
-//    template<typename NodeId, size_t NParents>
-//    void Tree<NodeId, NParents>::SaveTo(const std::string &filename) const {
-//        std::ofstream fout(filename);
-//        PrintTo(fout);
-//    }
 }

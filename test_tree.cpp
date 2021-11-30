@@ -130,34 +130,34 @@ biba)");
             ASSERT(tree1.GetNode(123) == nullptr);
             ASSERT_EQUAL(*tree1.GetNode(9), NodeT::ParseFrom("9 8 0"));
             ASSERT_EQUAL(*tree1.GetNode(4), NodeT::ParseFrom("4 3 1"));
-            unordered_set<size_t> expected_children_4{5, 6, 7};
-            ASSERT_EQUAL(tree1.GetChildren(4), expected_children_4);
-            unordered_set<size_t> expected_children_0{9, 2};
-            ASSERT_EQUAL(tree1.GetChildren(0), expected_children_0);
-            ASSERT_EQUAL(tree1.GetChildren(9), unordered_set<size_t>{});
-            unordered_map<size_t, size_t> order;
-            auto node_enumerator = [&order](const NodeT& node) {
-                order.emplace(node.id, order.size());
-            };
-            tree1.TraverseBreadthFirst(node_enumerator);
-            ASSERT(order[0] <= 1);
-            ASSERT(order[1] <= 1);
-            ASSERT(order[2] <= 5);
-            ASSERT(order[3] <= 5);
-            ASSERT(order[4] <= 5);
-            ASSERT(order[9] <= 5);
-            ASSERT(order[5] <= 8);
-            ASSERT(order[6] <= 8);
-            ASSERT(order[7] <= 8);
-            ASSERT(order[8] == 9);
+//            unordered_set<size_t> expected_children_4{5, 6, 7};
+//            ASSERT_EQUAL(tree1.GetChildren(4), expected_children_4);
+//            unordered_set<size_t> expected_children_0{9, 2};
+//            ASSERT_EQUAL(tree1.GetChildren(0), expected_children_0);
+//            ASSERT_EQUAL(tree1.GetChildren(9), unordered_set<size_t>{});
+//            unordered_map<size_t, size_t> order;
+//            auto node_enumerator = [&order](const NodeT& node) {
+//                order.emplace(node.id, order.size());
+//            };
+//            tree1.TraverseBreadthFirst(node_enumerator);
+//            ASSERT(order[0] <= 1);
+//            ASSERT(order[1] <= 1);
+//            ASSERT(order[2] <= 5);
+//            ASSERT(order[3] <= 5);
+//            ASSERT(order[4] <= 5);
+//            ASSERT(order[9] <= 5);
+//            ASSERT(order[5] <= 8);
+//            ASSERT(order[6] <= 8);
+//            ASSERT(order[7] <= 8);
+//            ASSERT(order[8] == 9);
         }
         {
             auto tree2 = TreeT::ParseFrom("100");
             ASSERT_EQUAL(tree2.GetNodes(), vector<NodeT>{NodeT(100)});
-            auto tree3 = TreeT::ParseFrom(R"(1
-2
-3 1 2)");
-            ASSERT_EQUAL(tree3.GetNodesBreadthFirst().back(), NodeT::ParseFrom("3 2 1"));
+//            auto tree3 = TreeT::ParseFrom(R"(1
+//2
+//3 1 2)");
+//            ASSERT_EQUAL(tree3.GetNodesBreadthFirst().back(), NodeT::ParseFrom("3 2 1"));
         }
     }
 
