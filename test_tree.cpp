@@ -160,6 +160,136 @@ biba)");
             ASSERT_EQUAL(tree3.GetNodesBreadthFirst().back(), NodeT::ParseFrom("3 2 1"));
         }
     }
+
+    void TestFamilyTreeAncestorFunctional() {
+        using NodeT = Node<char, 3>;
+        auto tree = Tree<char, 3>::ParseFrom(R"(A
+B
+C
+D
+E A B C
+F A B C
+G A B C
+H A B C
+I E F D
+J F G H
+K I G H
+L I G D
+M A K L)");
+        // GetAncestors
+        unordered_set<char> expected_i_ancestors{'I', 'A', 'B', 'C', 'E', 'F', 'D'};
+        ASSERT_EQUAL(tree.GetAncestors('I'), expected_i_ancestors);
+        unordered_set<char> expected_h_ancestors{'H', 'A', 'B', 'C'};
+        ASSERT_EQUAL(tree.GetAncestors('H'), expected_h_ancestors);
+        unordered_set<char> expected_m_ancestors{'A', 'B', 'C', 'D', 'E', 'F',
+                                                 'G', 'H', 'I', 'K', 'L', 'M'};
+        ASSERT_EQUAL(tree.GetAncestors('M'), expected_m_ancestors);
+        unordered_set<char> expected_b_ancestors{'B'};
+        ASSERT_EQUAL(tree.GetAncestors('B'), expected_b_ancestors);
+        // TraverseAncestors
+        unordered_map<char, size_t> order;
+        auto node_enumerator = [&order](const NodeT& node) {
+            order.emplace(node.id, order.size());
+        };
+        tree.TraverseAncestorsBreadthFirst('M', node_enumerator);
+        ASSERT(order['M'] == 0);
+        ASSERT(order['K'] <= 3);
+        ASSERT(order['L'] <= 3);
+        ASSERT(order['A'] <= 3);
+        ASSERT(order['I'] <= 7);
+        ASSERT(order['G'] <= 7);
+        ASSERT(order['H'] <= 7);
+        ASSERT(order['D'] <= 7);
+        ASSERT(order['E'] <= 11);
+        ASSERT(order['F'] <= 11);
+        ASSERT(order['B'] <= 11);
+        ASSERT(order['C'] <= 11);
+        // LowestCommonAncestors
+        unordered_set<char> expected_j_d_ancestors = {};
+        ASSERT_EQUAL(tree.LowestCommonAncestors('J', 'D'), expected_j_d_ancestors);
+        unordered_set<char> expected_k_m_ancestors = {'K'};
+        ASSERT_EQUAL(tree.LowestCommonAncestors('K', 'M'), expected_k_m_ancestors);
+        unordered_set<char> expected_k_l_ancestors = {'I', 'G'};
+        ASSERT_EQUAL(tree.LowestCommonAncestors('K', 'L'), expected_k_l_ancestors);
+        unordered_set<char> expected_j_e_ancestors = {'A', 'B', 'C'};
+        ASSERT_EQUAL(tree.LowestCommonAncestors('J', 'E'), expected_j_e_ancestors);
+        unordered_set<char> expected_m_m_ancestors = {'M'};
+        ASSERT_EQUAL(tree.LowestCommonAncestors('M', 'M'), expected_m_m_ancestors);
+        unordered_set<char> expected_l_j_ancestors = {'F', 'G'};
+        ASSERT_EQUAL(tree.LowestCommonAncestors('L', 'J'), expected_l_j_ancestors);
+        unordered_set<char> expected_m_j_ancestors = {'F', 'G', 'H'};
+        ASSERT_EQUAL(tree.LowestCommonAncestors('M', 'J'), expected_m_j_ancestors);
+        unordered_set<char> expected_e_d_ancestors = {};
+        ASSERT_EQUAL(tree.LowestCommonAncestors('E', 'D'), expected_e_d_ancestors);
+    }
+
+    void TestFamilyTreeMerge() {
+        {
+            using TreeT = Tree<int, 2>;
+            auto tree1 = TreeT::ParseFrom(R"(1
+2
+4 1 2
+3
+5 4 3)");
+            auto tree2 = TreeT::ParseFrom(R"(2
+6
+1
+4 2 1
+7 6 2
+8 4 7)");
+            auto expected_merge12 = TreeT::ParseFrom(R"(6
+2
+1
+4 2 1
+7 6 2
+3
+5 4 3
+8 7 4)");
+            ASSERT_EQUAL(TreeT::Merge(tree1, tree2), expected_merge12);
+            auto tree3 = TreeT::ParseFrom(R"(100
+200
+300 100 200)");
+            auto expected_merge_13 = TreeT::ParseFrom(R"(1
+2
+4 1 2
+3
+5 4 3
+200
+100
+300 200 100)");
+            ASSERT_EQUAL(TreeT::Merge(tree1, tree3), expected_merge_13);
+            auto expected_merge_123 = TreeT::ParseFrom(R"(6
+2
+1
+4 2 1
+7 6 2
+3
+5 4 3
+8 7 4
+100
+200
+300 100 200)");
+            ASSERT_EQUAL(TreeT::Merge(tree1, TreeT::Merge(tree2, tree3)), expected_merge_123);
+        }
+        {
+            using TreeT = Tree<string, 2>;
+            auto tree1 = TreeT::ParseFrom(R"(Biba
+Boba
+Aboba
+Bingus Biba Boba
+)");
+            auto tree2 = TreeT::ParseFrom(R"(Biba
+Boba
+Aboba
+Bingus Boba Aboba)");
+            ASSERT_THROWS(TreeT::Merge(tree1, tree2), runtime_error);
+            auto tree3 = TreeT::ParseFrom(R"(Biba
+Boba
+Aboba
+Bingus)");
+            ASSERT_THROWS(TreeT::Merge(tree1, tree3), runtime_error);
+        }
+    }
 }
 
 
@@ -168,4 +298,7 @@ void TestAll() {
     RUN_TEST(tr, TestFamilyTreeNode);
     RUN_TEST(tr, TestFamilyTreeCreation);
     RUN_TEST(tr, TestFamilyTreeGetters);
+    RUN_TEST(tr, TestFamilyTreeAncestorFunctional);
+    RUN_TEST(tr, TestFamilyTreeMerge);
 }
+// Привет, вам друзья и братья, у моих не валяйтесь ног. Должны поскорей понять вы, что я вам никакой не бог!
