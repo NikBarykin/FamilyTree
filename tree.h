@@ -59,10 +59,10 @@ namespace FamilyTree {
     private:
         std::unordered_map<NodeId, Node> nodes_;
         std::vector<NodeId> birth_order_;
-        // Make string from NodeId using operator <<(ostream&, NodeId)
-        static std::string MakeString(const NodeId &node_id);
-    public:
 
+        static std::string MakeString(const NodeId &node_id);
+        // Returns string made from node_id using operator <<(ostream& NodeId)
+    public:
         Tree() = default;
 
         template<typename NodeIt>
@@ -73,14 +73,17 @@ namespace FamilyTree {
         // TODO: add node by rvalue
         Tree &AddNode(const Node &new_node);
 
-        // Getters
         const Node *GetNode(const NodeId &node_id) const;
+        // nullptr - node with id node_id not found
+
         std::vector<Node> GetNodes() const;
+        // Returning nodes in birth order
 
         std::unordered_set<NodeId> GetAncestors(const NodeId &node) const;
         std::unordered_set<NodeId> LowestCommonAncestors(const NodeId &node1, const NodeId &node2) const;
+        //
 
-        // Rendering
+        // Rendering constants
         static const size_t RENDER_WIDTH = 1500;
         static const size_t RENDER_HEIGHT = 660;
         static const size_t RENDER_PADDING = 100;
