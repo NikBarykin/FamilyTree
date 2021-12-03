@@ -56,8 +56,9 @@ namespace FamilyTree {
 
     template<typename NodeId, size_t NParents>
     class Tree {
+    public:
         using Node = Node<NodeId, NParents>;
-// We assume that NodeId is a light type,
+        // We assume that NodeId is a light type,
 // which means we shouldn't worry about resources its copying takes
     private:
 //        std::unordered_map<NodeId, std::unordered_set<NodeId>> children_;

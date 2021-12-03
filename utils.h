@@ -2,11 +2,14 @@
 
 #include "svg.h"
 
+#include <iostream>
+#include <fstream>
 #include <string>
 #include <string_view>
 #include <vector>
 #include <chrono>
 #include <unordered_set>
+#include <sstream>
 
 
 std::vector<std::string> Split(std::string_view sv, const std::string& delimiter=" ");
@@ -27,21 +30,24 @@ std::unordered_set<T> UnorderedSetIntersection(const std::unordered_set<T>& lhs,
     }
     return result;
 }
-//
-//
-//Svg::Rgb MergeRgb(Svg::Rgb lhs, Svg::Rgb rhs);
-//
-//
-//template<typename SvgRgbIt>
-//Svg::Rgb MergeRgb(SvgRgbIt begin, SvgRgbIt end) {
-//    int red_sum = 0, green_sum = 0, blue_sum = 0, n_colors = 0;
-//    for (SvgRgbIt it = begin; it != end; ++it) {
-//        red_sum += it->red;
-//        green_sum += it->green;
-//        blue_sum += it->blue;
-//        ++n_colors;
-//    }
-//    return Svg::Rgb{red_sum / n_colors,
-//                    green_sum / n_colors,
-//                    blue_sum / n_colors};
-//}
+
+
+std::string ReadEverythingFromFile(const std::string& filename);
+
+
+template<typename InputIterator>
+void PrintSequenceWithDelimiter(std::ostream& output, InputIterator begin,
+                                InputIterator end, const std::string& delimiter=" ") {
+    bool first = true;
+    for (InputIterator it = begin; it != end; ++it) {
+        if (!first) {
+            output << delimiter;
+        } else {
+            first = false;
+        }
+        output << *it;
+    }
+}
+
+
+std::string MakeLower(std::string);
