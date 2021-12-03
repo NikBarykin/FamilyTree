@@ -21,7 +21,8 @@
 namespace FamilyTree {
     template<typename NodeId, size_t NParents>
     struct Node {
-        // TODO: struct -> class; add getters and make fields private
+        // TODO: struct -> class
+        // TODO: add getters and make fields private
         NodeId id;
         std::optional<std::array<NodeId, NParents>> parent_ids;
 
@@ -52,26 +53,25 @@ namespace FamilyTree {
 
     template<typename NodeId, size_t NParents>
     class Tree {
-    public:
-        using Node = Node<NodeId, NParents>;
-        // We assume that NodeId is a light type,
-        // which means we shouldn't worry about resources its copying takes
+    public: using Node = Node<NodeId, NParents>;
     private:
         std::unordered_map<NodeId, Node> nodes_;
         std::vector<NodeId> birth_order_;
 
         static std::string MakeString(const NodeId &node_id);
         // Returns string made from node_id using operator <<(ostream& NodeId)
+
     public:
         Tree() = default;
-
         template<typename NodeIt>
         Tree(NodeIt begin, NodeIt end);
+        static Tree ParseFrom(const std::string& input);
 
         size_t GetSize() const { return nodes_.size(); }
 
-        // TODO: add node by rvalue
         Tree &AddNode(const Node &new_node);
+        // TODO: add node by rvalue
+        // TODO: emplace node
 
         const Node *GetNode(const NodeId &node_id) const;
         // nullptr - node with id node_id not found
@@ -81,7 +81,10 @@ namespace FamilyTree {
 
         std::unordered_set<NodeId> GetAncestors(const NodeId &node) const;
         std::unordered_set<NodeId> LowestCommonAncestors(const NodeId &node1, const NodeId &node2) const;
-        //
+        // Return common ancestors (node is an ancestor of itself)
+        // that doesn't have common ancestors (for node1 and node2) in offspring
+
+        static Tree Merge(const Tree &lhs, const Tree &rhs);
 
         // Rendering constants
         static const size_t RENDER_WIDTH = 1500;
@@ -100,8 +103,6 @@ namespace FamilyTree {
 
     public:
         Svg::Document RenderSvg() const;
-        static Tree Merge(const Tree &lhs, const Tree &rhs);
-        static Tree ParseFrom(const std::string& input);
     };
 
     template<typename NodeId, size_t NParents>
@@ -117,7 +118,9 @@ namespace FamilyTree {
                               const Tree<NodeId, NParents>& tree);
 }
 
+
 // Implementations
+// TODO: split into several header files
 // Node
 namespace FamilyTree {
     template<typename NodeId, size_t NParents>
@@ -148,7 +151,6 @@ namespace FamilyTree {
             Node(id, std::begin(container), std::end(container)) {}
 
 
-// TODO: split into several header files
     template<typename NodeId, size_t NParents>
     std::vector<NodeId> Node<NodeId, NParents>::GetParents() const {
         if (parent_ids) {
@@ -157,7 +159,8 @@ namespace FamilyTree {
             return {};
         }
     }
-    // Машина смерти сошла с ума, она летит сметая все
+
+
     template<typename NodeId, size_t NParents>
     Node<NodeId, NParents> Node<NodeId, NParents>::ParseFrom(const std::string& input) {
         if (input.empty()) {
@@ -173,6 +176,7 @@ namespace FamilyTree {
         return Node<NodeId, NParents>(node_id, parent_ids.begin(), parent_ids.end());
     }
 
+
     template<typename NodeId, size_t NParents>
     bool operator ==(const Node<NodeId, NParents>& lhs,
                      const Node<NodeId, NParents>& rhs) {
@@ -182,11 +186,13 @@ namespace FamilyTree {
                                 == std::unordered_set(r_parents.begin(), r_parents.end());
     }
 
+
     template<typename NodeId, size_t NParents>
     bool operator !=(const Node<NodeId, NParents>& lhs,
                      const Node<NodeId, NParents>& rhs) {
         return !(lhs == rhs);
     }
+
 
     template<typename NodeId, size_t NParents>
     std::ostream& operator <<(std::ostream& output,
@@ -440,6 +446,7 @@ namespace FamilyTree {
         return resulting_tree;
     }
 
+
     template<typename NodeId, size_t NParents>
     Tree<NodeId, NParents> Tree<NodeId, NParents>::ParseFrom(const std::string &input) {
         std::stringstream input_stream(input);
@@ -452,6 +459,7 @@ namespace FamilyTree {
         }
         return Tree<NodeId, NParents>(nodes.begin(), nodes.end());
     }
+
 
     template<typename NodeId, size_t NParents>
     bool operator==(const Tree<NodeId, NParents> &lhs,
@@ -468,11 +476,13 @@ namespace FamilyTree {
         return true;
     }
 
+
     template<typename NodeId, size_t NParents>
     bool operator!=(const Tree<NodeId, NParents> &lhs,
                     const Tree<NodeId, NParents> &rhs) {
         return !(lhs == rhs);
     }
+
 
     template<typename NodeId, size_t NParents>
     std::ostream &operator<<(std::ostream &output,

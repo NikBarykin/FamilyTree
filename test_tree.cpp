@@ -5,13 +5,8 @@
 using namespace std;
 using namespace FamilyTree;
 
-//
-//template<typename NodeId, size_t NParents>
-//using Node = typename FamilyTree<NodeId, NParents>::Node;
-//
 
 namespace {
-
     void TestFamilyTreeNode() {
         {
             using NodeT = Node<int, 2>;
@@ -130,34 +125,10 @@ biba)");
             ASSERT(tree1.GetNode(123) == nullptr);
             ASSERT_EQUAL(*tree1.GetNode(9), NodeT::ParseFrom("9 8 0"));
             ASSERT_EQUAL(*tree1.GetNode(4), NodeT::ParseFrom("4 3 1"));
-//            unordered_set<size_t> expected_children_4{5, 6, 7};
-//            ASSERT_EQUAL(tree1.GetChildren(4), expected_children_4);
-//            unordered_set<size_t> expected_children_0{9, 2};
-//            ASSERT_EQUAL(tree1.GetChildren(0), expected_children_0);
-//            ASSERT_EQUAL(tree1.GetChildren(9), unordered_set<size_t>{});
-//            unordered_map<size_t, size_t> order;
-//            auto node_enumerator = [&order](const NodeT& node) {
-//                order.emplace(node.id, order.size());
-//            };
-//            tree1.TraverseBreadthFirst(node_enumerator);
-//            ASSERT(order[0] <= 1);
-//            ASSERT(order[1] <= 1);
-//            ASSERT(order[2] <= 5);
-//            ASSERT(order[3] <= 5);
-//            ASSERT(order[4] <= 5);
-//            ASSERT(order[9] <= 5);
-//            ASSERT(order[5] <= 8);
-//            ASSERT(order[6] <= 8);
-//            ASSERT(order[7] <= 8);
-//            ASSERT(order[8] == 9);
         }
         {
             auto tree2 = TreeT::ParseFrom("100");
             ASSERT_EQUAL(tree2.GetNodes(), vector<NodeT>{NodeT(100)});
-//            auto tree3 = TreeT::ParseFrom(R"(1
-//2
-//3 1 2)");
-//            ASSERT_EQUAL(tree3.GetNodesBreadthFirst().back(), NodeT::ParseFrom("3 2 1"));
         }
     }
 
@@ -186,24 +157,6 @@ M A K L)");
         ASSERT_EQUAL(tree.GetAncestors('M'), expected_m_ancestors);
         unordered_set<char> expected_b_ancestors{'B'};
         ASSERT_EQUAL(tree.GetAncestors('B'), expected_b_ancestors);
-        // TraverseAncestors
-        unordered_map<char, size_t> order;
-        auto node_enumerator = [&order](const NodeT& node) {
-            order.emplace(node.id, order.size());
-        };
-        tree.TraverseAncestorsBreadthFirst('M', node_enumerator);
-        ASSERT(order['M'] == 0);
-        ASSERT(order['K'] <= 3);
-        ASSERT(order['L'] <= 3);
-        ASSERT(order['A'] <= 3);
-        ASSERT(order['I'] <= 7);
-        ASSERT(order['G'] <= 7);
-        ASSERT(order['H'] <= 7);
-        ASSERT(order['D'] <= 7);
-        ASSERT(order['E'] <= 11);
-        ASSERT(order['F'] <= 11);
-        ASSERT(order['B'] <= 11);
-        ASSERT(order['C'] <= 11);
         // LowestCommonAncestors
         unordered_set<char> expected_j_d_ancestors = {};
         ASSERT_EQUAL(tree.LowestCommonAncestors('J', 'D'), expected_j_d_ancestors);
@@ -301,4 +254,3 @@ void TestAll() {
     RUN_TEST(tr, TestFamilyTreeAncestorFunctional);
     RUN_TEST(tr, TestFamilyTreeMerge);
 }
-// Привет, вам друзья и братья, у моих не валяйтесь ног. Должны поскорей понять вы, что я вам никакой не бог!
