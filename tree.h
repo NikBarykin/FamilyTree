@@ -34,10 +34,6 @@ namespace FamilyTree {
         Node(const NodeId &id, Container container);
 
         std::vector<NodeId> GetParents() const;
-
-//        friend bool operator==(const Node &lhs, const Node &rhs) {
-//            return std::tie(lhs.id, lhs.parent_ids) == std::tie(rhs.id, rhs.parent_ids);
-//        }
         static Node ParseFrom(const std::string& input);
     };
 
@@ -59,9 +55,8 @@ namespace FamilyTree {
     public:
         using Node = Node<NodeId, NParents>;
         // We assume that NodeId is a light type,
-// which means we shouldn't worry about resources its copying takes
+        // which means we shouldn't worry about resources its copying takes
     private:
-//        std::unordered_map<NodeId, std::unordered_set<NodeId>> children_;
         std::unordered_map<NodeId, Node> nodes_;
         std::vector<NodeId> birth_order_;
         // Make string from NodeId using operator <<(ostream&, NodeId)
@@ -80,51 +75,9 @@ namespace FamilyTree {
 
         // Getters
         const Node *GetNode(const NodeId &node_id) const;
-
-//        std::unordered_set<NodeId> GetChildren(const NodeId &node_id) const;
-//        std::unordered_set<NodeId> GetParentlessNodes() const;
-
-        // Get all nodes in UNDEFINED order (because we get it from unordered map)
         std::vector<Node> GetNodes() const;
 
-
-//        // TODO: add Breadth-first iterators
-//        // Walkers
-//        template<typename NodeVisitor>
-//        void TraverseBreadthFirst(NodeVisitor node_visitor) const;
-//
-////        std::vector<Node> GetNodesBreadthFirst() const;
-//
-//    private:
-//        template<typename NodeVisitor>
-//        void TraverseDepthFirstImpl(const NodeId& node_id, NodeVisitor node_visitor,
-//                                    std::unordered_set<NodeId>& visited_nodes) const;
-//
-//    public:
-//
-//        template<typename NodeVisitor>
-//        void TraverseDepthFirst(NodeVisitor node_visitor) const;
-//
-////        std::vector<Node> GetNodesDepthFirst() const;
-//
-//    private:
-//        void TraverseInTopologicalOrderImpl(const NodeId& node_id, std::vector<NodeId>& top_order,
-//                                            std::unordered_set<NodeId>& visited_nodes) const;
-//
-//    public:
-//        template<typename NodeVisitor>
-//        void TraverseInTopologicalOrder(NodeVisitor node_visitor) const;
-//
-////        std::vector<Node> GetNodesInTopologicalOrder() const;
-
-        template<typename NodeVisitor>
-        void TraverseAncestorsBreadthFirst(const NodeId &start_node,
-                                           NodeVisitor node_visitor) const;
-
-        // main methods
         std::unordered_set<NodeId> GetAncestors(const NodeId &node) const;
-
-//    std::unordered_set<NodeId> DiscardAncestors(const std::unordered_set<NodeId>& nodes) const;
         std::unordered_set<NodeId> LowestCommonAncestors(const NodeId &node1, const NodeId &node2) const;
 
         // Rendering
@@ -140,23 +93,12 @@ namespace FamilyTree {
         static Svg::Color InheritColor(ColorIt color_begin, ColorIt color_end);
 
         std::unordered_map<NodeId, Svg::Color> CalculateColors() const;
-
         std::unordered_map<NodeId, Svg::Point> CalculatePositions() const;
 
     public:
         Svg::Document RenderSvg() const;
-
-        // side methods
         static Tree Merge(const Tree &lhs, const Tree &rhs);
-
-//        friend bool operator==(const Tree &lhs, const Tree &rhs) { return lhs.nodes_ == rhs.nodes_; }
-
-//        void PrintTo(std::ostream &output) const;
         static Tree ParseFrom(const std::string& input);
-
-//        void SaveTo(const std::string &filename) const;
-        // TODO: implement
-//    static Tree OpenFrom(const std::string& filename);
     };
 
     template<typename NodeId, size_t NParents>
@@ -311,27 +253,6 @@ namespace FamilyTree {
 
 
     template<typename NodeId, size_t NParents>
-    template<typename NodeVisitor>
-    void Tree<NodeId, NParents>::TraverseAncestorsBreadthFirst(
-            const NodeId &start_node, NodeVisitor node_visitor) const {
-        std::queue<NodeId> node_order;
-        node_order.push(start_node);
-        std::unordered_set<NodeId> considered_nodes = {start_node};
-        while (!node_order.empty()) {
-            NodeId node_id = node_order.front();
-            node_order.pop();
-            node_visitor(*GetNode(node_id));
-            for (const NodeId &parent: GetNode(node_id)->GetParents()) {
-                if (!considered_nodes.count(parent)) {
-                    node_order.push(parent);
-                    considered_nodes.insert(parent);
-                }
-            }
-        }
-    }
-
-
-    template<typename NodeId, size_t NParents>
     Svg::Color Tree<NodeId, NParents>::GenerateDefaultColor() {
         static std::mt19937 rnd(time(nullptr) + 239);
         auto gen_rand_channel = []() -> int {
@@ -462,12 +383,22 @@ namespace FamilyTree {
 
     template<typename NodeId, size_t NParents>
     std::unordered_set<NodeId> Tree<NodeId, NParents>::GetAncestors(const NodeId &node) const {
-        std::unordered_set<NodeId> result;
-        auto node_visitor = [&result](const Node &node) {
-            result.insert(node.id);
-        };
-        TraverseAncestorsBreadthFirst(node, node_visitor);
-        return result;
+        std::unordered_set<NodeId> ancestors;
+        std::queue<NodeId> node_order;
+        node_order.push(node);
+        std::unordered_set<NodeId> considered_nodes = {node};
+        while (!node_order.empty()) {
+            NodeId node_id = node_order.front();
+            node_order.pop();
+            ancestors.insert(node_id);
+            for (const NodeId &parent: GetNode(node_id)->GetParents()) {
+                if (!considered_nodes.count(parent)) {
+                    node_order.push(parent);
+                    considered_nodes.insert(parent);
+                }
+            }
+        }
+        return ancestors;
     }
 
 
