@@ -54,7 +54,20 @@ void RunInteraction(const string& start_filename, istream& command_stream, ostre
           Tree other_tree = OpenFrom(arguments[0]);
           family_tree = Tree::Merge(family_tree, other_tree);
         } else if (command_name == "help") {
-            // TODO: help command handling
+            output << R"(Every command consists of command_name and arguments separated by whitespace:
+command_name argument1 argument2 ...
+command_name is case insensitive
+Valid commands:
+1) Exit
+2) Add or AddNode node_name [parent1_name parent2_name]
+3) Open family_tree_filename - loads family tree from file family_tree_filename
+4) Save family_tree filename - saves family tree to file family_tree_filename
+5) Print - prints tree in output stream (console by default)
+6) Render render_filename - renders svg document to file render_filename (most browsers support svg document rendering)
+7) LowestCommonAncestors or LCA node1_name node2_name - finds lowest common ancestors for given nodes,
+   "lowest" means that this ancestor doesn't have common ancestors in offspring
+8) Merge other_family_tree_filename - merges tree from file other_family_tree_filename to current family tree
+9) Help)" << endl;
         } else {
             output << "Unknown command" << endl;
         }
