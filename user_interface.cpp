@@ -54,7 +54,7 @@ void RunInteraction(const string& start_filename, istream& command_stream, ostre
           Tree other_tree = OpenFrom(arguments[0]);
           family_tree = Tree::Merge(family_tree, other_tree);
         } else if (command_name == "help") {
-            output << R"(Every command consists of command_name and arguments separated by whitespace:
+            output << R"(Every command consists of command_name and arguments separated by whitespaces:
 command_name argument1 argument2 ...
 command_name is case insensitive
 Valid commands:
