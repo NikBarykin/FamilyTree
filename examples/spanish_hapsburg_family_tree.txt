@@ -1,0 +1,29 @@
+Philip1
+Joanna
+Charles5 Philip1 Joanna
+Isabella1
+Ferdinand1 Philip1 Joanna
+Anne
+Isabella2 Philip1 Joanna
+Christian2
+Philip2 Charles5 Isabella1
+Maria Charles5 Isabella1
+Maximilian2 Ferdinand1 Anne
+Charles2Austria Ferdinand1 Anne
+Anna1 Ferdinand1 Anne
+Albert5
+Christina Isabella2 Christian2
+Francis1
+Anna2 Maria Maximilian2
+MariaAnna Anna1 Albert5
+William5 Anna1 Albert5
+Renata Christina Francis1
+Philip3 Philip2 Anna2
+Margaret Charles2Austria MariaAnna
+Ferdinand2 Charles2Austria MariaAnna
+MariaAnna2 William5 Renata
+Philip4 Philip3 Margaret
+MariaAnna3 Philip3 Margaret
+Ferdinand3 Ferdinand2 MariaAnna2
+Mariana Ferdinand3 MariaAnna3
+Charles2Spain Philip4 Mariana
