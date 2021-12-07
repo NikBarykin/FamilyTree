@@ -71,7 +71,7 @@ namespace FamilyTree {
 
         Tree &AddNode(const Node &new_node);
         // TODO: add node by rvalue
-        // TODO: emplace node
+        // TODO: node emplacement
 
         const Node *GetNode(const NodeId &node_id) const;
         // nullptr - node with id node_id not found
@@ -88,8 +88,8 @@ namespace FamilyTree {
 
         // Rendering constants
         static const size_t RENDER_WIDTH = 1500;
-        static const size_t RENDER_HEIGHT = 660;
-        static const size_t RENDER_PADDING = 100;
+        static const size_t RENDER_HEIGHT = 740;
+        static const size_t RENDER_PADDING = 50;
         static const size_t RENDER_NODE_RADIUS = 30;
 
     private:
@@ -99,6 +99,7 @@ namespace FamilyTree {
         static Svg::Color InheritColor(ColorIt color_begin, ColorIt color_end);
 
         std::unordered_map<NodeId, Svg::Color> CalculateColors() const;
+        std::vector<std::vector<NodeId>> DistributeNodesInLevels() const;
         std::unordered_map<NodeId, Svg::Point> CalculatePositions() const;
 
     public:
@@ -321,43 +322,40 @@ namespace FamilyTree {
 
 
     template<typename NodeId, size_t NParents>
+    std::vector<std::vector<NodeId>> Tree<NodeId, NParents>::DistributeNodesInLevels() const {
+        std::vector<std::vector<NodeId>> levels;
+        std::unordered_map<NodeId, size_t> level_by_node;
+        auto nodes = GetNodes();
+        std::reverse(nodes.begin(), nodes.end());
+        for (const Node &node : nodes) {
+            size_t node_level = level_by_node[node.id];
+            for (const NodeId &parent_id : node.GetParents()) {
+                level_by_node[parent_id] = std::max(level_by_node[parent_id], node_level + 1);
+            }
+            if (node_level >= levels.size()) {
+                levels.emplace_back();
+            }
+            levels[node_level].push_back(node.id);
+        }
+        std::reverse(levels.begin(), levels.end());
+        return levels;
+    }
+
+
+    template<typename NodeId, size_t NParents>
     std::unordered_map<NodeId, Svg::Point> Tree<NodeId, NParents>::CalculatePositions() const {
-        std::vector<std::vector<NodeId>> nodes_by_level;
-        // TODO: create separate function for level calculation
-        std::unordered_map<NodeId, size_t> levels;
-        for (const Node &node: GetNodes()) {
-            size_t node_level = 0;
-            for (const NodeId &parent_id: node.GetParents()) {
-                node_level = std::max(node_level, levels[parent_id] + 1);
-            }
-            if (node_level >= nodes_by_level.size()) {
-                nodes_by_level.emplace_back();
-            }
-            nodes_by_level[node_level].push_back(node.id);
-            levels[node.id] = node_level;
-        };
+        auto levels = DistributeNodesInLevels();
         std::unordered_map<NodeId, Svg::Point> positions;
-        auto create_even_distribution = [](double min_val, double max_val, size_t n_points) -> std::vector<double> {
-            std::vector<double> points(n_points);
-            if (n_points == 1) {
-                points[0] = (min_val + max_val) / 2.0;
-            } else {
-                points[0] = min_val;
-                for (size_t i = 1; i < n_points; ++i) {
-                    points[i] = points[i - 1] + (max_val - min_val) / (n_points - 1);
-                }
+        double level_y = levels.size() > 1 ? RENDER_PADDING : RENDER_HEIGHT / 2.0;
+        for (size_t level = 0; level < levels.size(); ++level) {
+            if (level) {
+                level_y += (RENDER_HEIGHT - RENDER_PADDING * 2) / (levels.size() - 1);
             }
-            return points;
-        };
-        auto y_distribution = create_even_distribution(RENDER_PADDING, RENDER_HEIGHT - RENDER_PADDING,
-                                                       nodes_by_level.size());
-        for (size_t level = 0; level < nodes_by_level.size(); ++level) {
-            auto x_distribution = create_even_distribution(RENDER_PADDING, RENDER_WIDTH - RENDER_PADDING,
-                                                           nodes_by_level[level].size());
-            for (size_t node_i = 0; node_i < nodes_by_level[level].size(); ++node_i) {
-                const NodeId &node_id = nodes_by_level[level][node_i];
-                positions[node_id] = Svg::Point{.x = x_distribution[node_i],
-                        .y = y_distribution[level]};
+            double x = RENDER_PADDING;
+            for (size_t node_i = 0; node_i < levels[level].size(); ++node_i) {
+                x += (RENDER_WIDTH - RENDER_PADDING * 2) / (levels[level].size() + 1);
+                const NodeId &node_id = levels[level][node_i];
+                positions[node_id] = Svg::Point{x, level_y};
             }
         }
         return positions;
