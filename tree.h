@@ -51,11 +51,11 @@ namespace FamilyTree {
                               const Node<NodeId, NParents>& node);
 
 
-    template<typename NodeId, size_t NParents>
+    template<typename NodeId, size_t NParents, typename NodeIdHash = std::hash<NodeId>>
     class Tree {
     public: using Node = Node<NodeId, NParents>;
     private:
-        std::unordered_map<NodeId, Node> nodes_;
+        std::unordered_map<NodeId, Node, NodeIdHash> nodes_;
         std::vector<NodeId> birth_order_;
 
         static std::string MakeString(const NodeId &node_id);
@@ -106,17 +106,17 @@ namespace FamilyTree {
         Svg::Document RenderSvg() const;
     };
 
-    template<typename NodeId, size_t NParents>
-    bool operator ==(const Tree<NodeId, NParents>& lhs,
-                     const Tree<NodeId, NParents>& rhs);
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    bool operator ==(const Tree<NodeId, NParents, NodeIdHash>& lhs,
+                     const Tree<NodeId, NParents, NodeIdHash>& rhs);
 
-    template<typename NodeId, size_t NParents>
-    bool operator !=(const Tree<NodeId, NParents>& lhs,
-                     const Tree<NodeId, NParents>& rhs);
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    bool operator !=(const Tree<NodeId, NParents, NodeIdHash>& lhs,
+                     const Tree<NodeId, NParents, NodeIdHash>& rhs);
 
-    template<typename NodeId, size_t NParents>
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
     std::ostream& operator <<(std::ostream& output,
-                              const Tree<NodeId, NParents>& tree);
+                              const Tree<NodeId, NParents, NodeIdHash>& tree);
 }
 
 
@@ -208,25 +208,25 @@ namespace FamilyTree {
 
 // Tree
 namespace FamilyTree {
-    template<typename NodeId, size_t NParents>
-    std::string Tree<NodeId, NParents>::MakeString(const NodeId &node_id) {
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    std::string Tree<NodeId, NParents, NodeIdHash>::MakeString(const NodeId &node_id) {
         std::stringstream ss;
         ss << node_id;
         return ss.str();
     }
 
 
-    template<typename NodeId, size_t NParents>
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
     template<typename NodeIt>
-    Tree<NodeId, NParents>::Tree(NodeIt begin, NodeIt end) {
+    Tree<NodeId, NParents, NodeIdHash>::Tree(NodeIt begin, NodeIt end) {
         for (auto it = begin; it != end; ++it) {
             AddNode(*it);
         }
     }
 
 
-    template<typename NodeId, size_t NParents>
-    Tree<NodeId, NParents> &Tree<NodeId, NParents>::AddNode(const Node &new_node) {
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    Tree<NodeId, NParents, NodeIdHash> &Tree<NodeId, NParents, NodeIdHash>::AddNode(const Node &new_node) {
         if (GetNode(new_node.id) != nullptr) {
             throw std::runtime_error("Node with given id already exists");
         }
@@ -241,8 +241,8 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
-    const Node<NodeId, NParents> *Tree<NodeId, NParents>::GetNode(
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    const Node<NodeId, NParents> *Tree<NodeId, NParents, NodeIdHash>::GetNode(
             const NodeId &node_id) const {
         if (auto node_it = nodes_.find(node_id); node_it != nodes_.end()) {
             return &node_it->second;
@@ -252,8 +252,8 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
-    std::vector<Node<NodeId, NParents>> Tree<NodeId, NParents>::GetNodes() const {
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    std::vector<Node<NodeId, NParents>> Tree<NodeId, NParents, NodeIdHash>::GetNodes() const {
         std::vector<Node> nodes;
         for (const NodeId &node_id: birth_order_) {
             nodes.push_back(*GetNode(node_id));
@@ -262,8 +262,8 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
-    Svg::Color Tree<NodeId, NParents>::GenerateDefaultColor() {
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    Svg::Color Tree<NodeId, NParents, NodeIdHash>::GenerateDefaultColor() {
         static std::mt19937 rnd(time(nullptr) + 239);
         auto gen_rand_channel = []() -> int {
             return rnd() % 256;
@@ -276,9 +276,9 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
     template<typename ColorIt>
-    Svg::Color Tree<NodeId, NParents>::InheritColor(ColorIt color_begin, ColorIt color_end) {
+    Svg::Color Tree<NodeId, NParents, NodeIdHash>::InheritColor(ColorIt color_begin, ColorIt color_end) {
         int red_sum = 0, green_sum = 0, blue_sum = 0, n_colors = 0;
         auto add_color = [&red_sum, &green_sum, &blue_sum, &n_colors](Svg::Color color) {
             if (!std::holds_alternative<Svg::Rgb>(color)) {
@@ -302,8 +302,8 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
-    std::unordered_map<NodeId, Svg::Color> Tree<NodeId, NParents>::CalculateColors() const {
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    std::unordered_map<NodeId, Svg::Color> Tree<NodeId, NParents, NodeIdHash>::CalculateColors() const {
         std::unordered_map<NodeId, Svg::Color> colors;
         for (const Node &node: GetNodes()) {
             if (!node.parent_ids) {
@@ -321,8 +321,8 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
-    std::vector<std::vector<NodeId>> Tree<NodeId, NParents>::DistributeNodesInLevels() const {
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    std::vector<std::vector<NodeId>> Tree<NodeId, NParents, NodeIdHash>::DistributeNodesInLevels() const {
         std::vector<std::vector<NodeId>> levels;
         std::unordered_map<NodeId, size_t> level_by_node;
         auto nodes = GetNodes();
@@ -342,8 +342,8 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
-    std::unordered_map<NodeId, Svg::Point> Tree<NodeId, NParents>::CalculatePositions() const {
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    std::unordered_map<NodeId, Svg::Point> Tree<NodeId, NParents, NodeIdHash>::CalculatePositions() const {
         auto levels = DistributeNodesInLevels();
         std::unordered_map<NodeId, Svg::Point> positions;
         double level_y = levels.size() > 1 ? RENDER_PADDING : RENDER_HEIGHT / 2.0;
@@ -362,8 +362,8 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
-    Svg::Document Tree<NodeId, NParents>::RenderSvg() const {
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    Svg::Document Tree<NodeId, NParents, NodeIdHash>::RenderSvg() const {
         Svg::Document tree_doc;
         auto colors = CalculateColors();
         auto positions = CalculatePositions();
@@ -388,8 +388,8 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
-    std::unordered_set<NodeId> Tree<NodeId, NParents>::GetAncestors(const NodeId &node) const {
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    std::unordered_set<NodeId> Tree<NodeId, NParents, NodeIdHash>::GetAncestors(const NodeId &node) const {
         std::unordered_set<NodeId> ancestors;
         std::queue<NodeId> node_order;
         node_order.push(node);
@@ -409,8 +409,8 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
-    std::unordered_set<NodeId> Tree<NodeId, NParents>::LowestCommonAncestors(
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    std::unordered_set<NodeId> Tree<NodeId, NParents, NodeIdHash>::LowestCommonAncestors(
             const NodeId &node1, const NodeId &node2) const {
         auto ancestors1 = GetAncestors(node1);
         auto ancestors2 = GetAncestors(node2);
@@ -425,10 +425,10 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
-    Tree<NodeId, NParents> Tree<NodeId, NParents>::Merge(
-            const Tree<NodeId, NParents> &lhs, const Tree<NodeId, NParents> &rhs) {
-        Tree<NodeId, NParents> resulting_tree;
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    Tree<NodeId, NParents, NodeIdHash> Tree<NodeId, NParents, NodeIdHash>::Merge(
+            const Tree<NodeId, NParents, NodeIdHash> &lhs, const Tree<NodeId, NParents, NodeIdHash> &rhs) {
+        Tree<NodeId, NParents, NodeIdHash> resulting_tree;
         for (const Node &node: lhs.GetNodes()) {
             if (rhs.GetNode(node.id) && node != *rhs.GetNode(node.id)) {
                 throw std::runtime_error("Both trees have node " + MakeString(node.id) +
@@ -445,8 +445,8 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
-    Tree<NodeId, NParents> Tree<NodeId, NParents>::ParseFrom(const std::string &input) {
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    Tree<NodeId, NParents, NodeIdHash> Tree<NodeId, NParents, NodeIdHash>::ParseFrom(const std::string &input) {
         std::stringstream input_stream(input);
         std::vector<Node> nodes;
         for (std::string line; std::getline(input_stream, line);) {
@@ -455,13 +455,13 @@ namespace FamilyTree {
             }
             nodes.push_back(Node::ParseFrom(line));
         }
-        return Tree<NodeId, NParents>(nodes.begin(), nodes.end());
+        return Tree<NodeId, NParents, NodeIdHash>(nodes.begin(), nodes.end());
     }
 
 
-    template<typename NodeId, size_t NParents>
-    bool operator==(const Tree<NodeId, NParents> &lhs,
-                    const Tree<NodeId, NParents> &rhs) {
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    bool operator==(const Tree<NodeId, NParents, NodeIdHash> &lhs,
+                    const Tree<NodeId, NParents, NodeIdHash> &rhs) {
         if (lhs.GetSize() != rhs.GetSize()) {
             return false;
         }
@@ -475,16 +475,16 @@ namespace FamilyTree {
     }
 
 
-    template<typename NodeId, size_t NParents>
-    bool operator!=(const Tree<NodeId, NParents> &lhs,
-                    const Tree<NodeId, NParents> &rhs) {
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
+    bool operator!=(const Tree<NodeId, NParents, NodeIdHash> &lhs,
+                    const Tree<NodeId, NParents, NodeIdHash> &rhs) {
         return !(lhs == rhs);
     }
 
 
-    template<typename NodeId, size_t NParents>
+    template<typename NodeId, size_t NParents, typename NodeIdHash>
     std::ostream &operator<<(std::ostream &output,
-                             const Tree<NodeId, NParents> &tree) {
+                             const Tree<NodeId, NParents, NodeIdHash> &tree) {
         for (const Node<NodeId, NParents>& node : tree.GetNodes()) {
             output << node.id;
             for (const NodeId &parent_id: node.GetParents()) {
