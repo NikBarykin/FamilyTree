@@ -56,8 +56,8 @@ std::ostream& operator << (std::ostream& os, const std::set<T>& s) {
     return os << "}";
 }
 
-template <class T>
-std::ostream& operator << (std::ostream& os, const std::unordered_set<T>& s) {
+template <class T, typename THash>
+std::ostream& operator << (std::ostream& os, const std::unordered_set<T, THash>& s) {
     os << "{";
     bool first = true;
     for (const auto& x : s) {

@@ -13,13 +13,13 @@
 std::vector<std::string> Split(std::string_view sv, const std::string& delimiter=" ");
 
 
-template<typename T>
-std::unordered_set<T> UnorderedSetIntersection(const std::unordered_set<T>& lhs,
-                                               const std::unordered_set<T>& rhs) {
+template<typename T, typename THash>
+std::unordered_set<T, THash> UnorderedSetIntersection(const std::unordered_set<T, THash>& lhs,
+                                                      const std::unordered_set<T, THash>& rhs) {
     if (rhs.size() < lhs.size()) {
         return UnorderedSetIntersection(rhs, lhs);
     }
-    std::unordered_set<T> result;
+    std::unordered_set<T, THash> result;
     result.reserve(lhs.size());
     for (const T& el : lhs) {
         if (rhs.count(el)) {
