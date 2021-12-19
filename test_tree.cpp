@@ -243,6 +243,59 @@ Bingus)");
             ASSERT_THROWS(TreeT::Merge(tree1, tree3), runtime_error);
         }
     }
+
+
+    struct MyNodeId1 {
+        int x, y;
+    };
+
+    struct MyNodeId1Hash {
+        size_t operator()(const MyNodeId1& node_id) const {
+            return static_cast<size_t>(node_id.x) * static_cast<size_t>(node_id.y);
+        }
+    };
+
+    bool operator ==(const MyNodeId1& lhs, const MyNodeId1& rhs) {
+        return lhs.x == rhs.x && lhs.y == rhs.y;
+    }
+
+    ostream& operator <<(ostream& output, const MyNodeId1& node_id) {
+        output << node_id.x << "," << node_id.y;
+        return output;
+    }
+
+    istream& operator >>(istream& input, MyNodeId1& node_id) {
+        input >> node_id.x;
+        input.ignore();
+        input >> node_id.y;
+        return input;
+    }
+
+    void TestFamilyTreeCustomNodeId() {
+        {
+            using TreeT = Tree<MyNodeId1, 2, MyNodeId1Hash>;
+            TreeT tree = TreeT::ParseFrom(R"(1,1
+2,2
+1,2 1,1 2,2)");
+            ostringstream oss;
+            oss << tree;
+            TreeT parsed_tree = TreeT::ParseFrom(oss.str());
+            ASSERT_EQUAL(tree, parsed_tree);
+            TreeT tree2 = TreeT::ParseFrom(R"(1,1
+2,2
+3,3 1,1 2,2)");
+            TreeT tree3 = TreeT::Merge(tree, tree2);
+            TreeT expected_tree3 = TreeT::ParseFrom(R"(1,1
+2,2
+1,2 2,2 1,1
+3,3 2,2 1,1)");
+            ASSERT_EQUAL(tree3, expected_tree3);
+            unordered_set<MyNodeId1, MyNodeId1Hash> expected_common_ancestors;
+            auto common_ancestors = tree3.LowestCommonAncestors(
+                    MyNodeId1{1, 2}, MyNodeId1{3, 3});
+            ASSERT_EQUAL(expected_common_ancestors, common_ancestors);
+        }
+    }
 }
 
 
