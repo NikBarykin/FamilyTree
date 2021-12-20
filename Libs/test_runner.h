@@ -26,48 +26,35 @@ namespace TestRunnerPrivate {
         }
         return os << "}";
     }
+
+    template<class Container>
+    std::ostream& PrintContainer(std::ostream& os, const Container& c) {
+        os << "{";
+        bool first = true;
+        for (const auto& x : c) {
+            if (!first) {
+                os << ", ";
+            }
+            first = false;
+            os << x;
+        }
+        return os << "}";
+    }
 }
 
 template <class T>
 std::ostream& operator << (std::ostream& os, const std::vector<T>& s) {
-    os << "{";
-    bool first = true;
-    for (const auto& x : s) {
-        if (!first) {
-            os << ", ";
-        }
-        first = false;
-        os << x;
-    }
-    return os << "}";
+    return TestRunnerPrivate::PrintContainer(os, s);
 }
 
 template <class T>
 std::ostream& operator << (std::ostream& os, const std::set<T>& s) {
-    os << "{";
-    bool first = true;
-    for (const auto& x : s) {
-        if (!first) {
-            os << ", ";
-        }
-        first = false;
-        os << x;
-    }
-    return os << "}";
+    return TestRunnerPrivate::PrintContainer(os, s);
 }
 
-template <class T, typename THash>
-std::ostream& operator << (std::ostream& os, const std::unordered_set<T, THash>& s) {
-    os << "{";
-    bool first = true;
-    for (const auto& x : s) {
-        if (!first) {
-            os << ", ";
-        }
-        first = false;
-        os << x;
-    }
-    return os << "}";
+template <class T, class THash, class TEqual>
+std::ostream& operator << (std::ostream& os, const std::unordered_set<T, THash, TEqual>& s) {
+    return TestRunnerPrivate::PrintContainer(os, s);
 }
 
 template <class K, class V>
