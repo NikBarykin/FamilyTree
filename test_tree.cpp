@@ -1,6 +1,8 @@
 #include "test_tree.h"
 #include "Libs/test_runner.h"
 #include "tree.h"
+#include "utils.h"
+
 
 using namespace std;
 using namespace FamilyTree;
@@ -9,7 +11,8 @@ using namespace FamilyTree;
 namespace {
     void TestFamilyTreeNode() {
         {
-            using NodeT = Node<int, 2>;
+            using TreeT = Tree<int, 2>;
+            using NodeT = TreeT::Node;
             NodeT node1(1);
             ASSERT_EQUAL(node1.id, 1);
             ASSERT(!node1.parent_ids);
@@ -24,16 +27,16 @@ namespace {
             ASSERT(!node3.parent_ids);
             ASSERT(node3.GetParents().empty());
             NodeT node4 = NodeT::ParseFrom("1");
-            ASSERT_EQUAL(node1, node4);
+            ASSERT(TreeT::NodesEqual(node1, node4));
             NodeT node5(5, vector<int>{1, 2});
             ASSERT(node5.parent_ids);
             ASSERT_EQUAL(node5.GetParents(), (vector<int>{1, 2}));
-            ASSERT_EQUAL(node5, NodeT::ParseFrom("5 2 1"));
-            ASSERT(node5 != NodeT::ParseFrom("2 1 5"));
+            ASSERT(TreeT::NodesEqual(node5, NodeT::ParseFrom("5 2 1")));
+            ASSERT(TreeT::NodesNotEqual(node5, NodeT::ParseFrom("2 1 5")));
             stringstream ss;
             ss << node1 << endl << node5;
             ASSERT_EQUAL(ss.str(), "1\n5 1 2");
-            ASSERT(node1 != node5);
+            ASSERT(TreeT::NodesNotEqual(node1, node5));
             ASSERT_THROWS(NodeT::ParseFrom("1 2"), runtime_error);
             ASSERT_THROWS(NodeT::ParseFrom("1 2 3 4"), runtime_error);
             ASSERT_THROWS(NodeT::ParseFrom(""), runtime_error);
@@ -123,12 +126,13 @@ biba)");
 9 0 8)");
             ASSERT_EQUAL(tree1.GetSize(), 10);
             ASSERT(tree1.GetNode(123) == nullptr);
-            ASSERT_EQUAL(*tree1.GetNode(9), NodeT::ParseFrom("9 8 0"));
-            ASSERT_EQUAL(*tree1.GetNode(4), NodeT::ParseFrom("4 3 1"));
+            ASSERT(TreeT::NodesEqual(*tree1.GetNode(9), NodeT::ParseFrom("9 8 0")));
+            ASSERT(TreeT::NodesEqual(*tree1.GetNode(4), NodeT::ParseFrom("4 3 1")));
         }
         {
             auto tree2 = TreeT::ParseFrom("100");
-            ASSERT_EQUAL(tree2.GetNodes(), vector<NodeT>{NodeT(100)});
+            ASSERT_EQUAL(tree2.GetNodes().size(), 1);
+            ASSERT(TreeT::NodesEqual(tree2.GetNodes().front(), NodeT(100)));
         }
     }
 
@@ -255,9 +259,11 @@ Bingus)");
         }
     };
 
-    bool operator ==(const MyNodeId1& lhs, const MyNodeId1& rhs) {
-        return lhs.x == rhs.x && lhs.y == rhs.y;
-    }
+    struct MyNodeId1Eq {
+        bool operator()(const MyNodeId1& lhs, const MyNodeId1& rhs) const {
+            return lhs.x == rhs.x && lhs.y == rhs.y;
+        }
+    };
 
     ostream& operator <<(ostream& output, const MyNodeId1& node_id) {
         output << node_id.x << "," << node_id.y;
@@ -273,7 +279,7 @@ Bingus)");
 
     void TestFamilyTreeCustomNodeId() {
         {
-            using TreeT = Tree<MyNodeId1, 2, MyNodeId1Hash>;
+            using TreeT = Tree<MyNodeId1, 2, MyNodeId1Hash, MyNodeId1Eq>;
             TreeT tree = TreeT::ParseFrom(R"(1,1
 2,2
 1,2 1,1 2,2)");
@@ -290,10 +296,10 @@ Bingus)");
 1,2 2,2 1,1
 3,3 2,2 1,1)");
             ASSERT_EQUAL(tree3, expected_tree3);
-            unordered_set<MyNodeId1, MyNodeId1Hash> expected_common_ancestors;
+            TreeT::NodeIdSet expected_common_ancestors = {MyNodeId1{1, 1}, MyNodeId1{2, 2}};
             auto common_ancestors = tree3.LowestCommonAncestors(
                     MyNodeId1{1, 2}, MyNodeId1{3, 3});
-            ASSERT_EQUAL(expected_common_ancestors, common_ancestors);
+            ASSERT(UnorderedSetEqual(common_ancestors, expected_common_ancestors));
         }
     }
 }
@@ -306,4 +312,5 @@ void TestAll() {
     RUN_TEST(tr, TestFamilyTreeGetters);
     RUN_TEST(tr, TestFamilyTreeAncestorFunctional);
     RUN_TEST(tr, TestFamilyTreeMerge);
+    RUN_TEST(tr, TestFamilyTreeCustomNodeId);
 }
