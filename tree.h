@@ -39,8 +39,14 @@ namespace FamilyTree {
         }
 
     public:
+        // TODO: make FamilyTree::Node static function using template<class NodeIdEqual>
+        //  and make parents comparison without hash
         static bool NodesEqual(const Node& lhs, const Node& rhs) {
-
+            auto l_parents = lhs.GetParents();
+            auto r_parents = rhs.GetParents();
+            return NodeIdEqual()(lhs.id, rhs.id) &&
+                   UnorderedSetEqual(NodeIdSet(l_parents.begin(), l_parents.end()),
+                                     NodeIdSet(r_parents.begin(), r_parents.end()));
         }
 
         static bool NodesNotEqual(const Node& lhs, const Node& rhs) {
@@ -139,7 +145,7 @@ namespace FamilyTree {
         static Tree Merge(const Tree &lhs, const Tree &rhs) {
             Tree resulting_tree;
             for (const Node &node: lhs.GetNodes()) {
-                if (rhs.GetNode(node.id) && node != *rhs.GetNode(node.id)) {
+                if (rhs.GetNode(node.id) && NodesNotEqual(node, *rhs.GetNode(node.id))) {
                     throw std::runtime_error("Both trees have node " + MakeString(node.id) +
                                              " versions that cannot be merged");
                 }
@@ -282,7 +288,7 @@ namespace FamilyTree {
         }
         for (const Node<NodeId, NParents> &node: lhs.GetNodes()) {
             auto r_node_ptr = rhs.GetNode(node.id);
-            if (!r_node_ptr || *r_node_ptr != node) {
+            if (!r_node_ptr || Tree<NodeId, NParents, NodeIdHash, NodeIdEqual>::NodesNotEqual(*r_node_ptr, node)) {
                 return false;
             }
         }
