@@ -159,7 +159,7 @@ namespace FamilyTree {
             return resulting_tree;
         }
 
-        // Rendering constants
+        // Render constants
         static const size_t RENDER_WIDTH = 1500;
         static const size_t RENDER_HEIGHT = 740;
         static const size_t RENDER_PADDING = 50;
@@ -297,9 +297,7 @@ namespace FamilyTree {
 
     template<class NodeId, size_t NParents, class NodeIdHash, class NodeIdEqual>
     bool operator !=(const Tree<NodeId, NParents, NodeIdHash, NodeIdEqual>& lhs,
-                     const Tree<NodeId, NParents, NodeIdHash, NodeIdEqual>& rhs) {
-        return !(lhs == rhs);
-    }
+                     const Tree<NodeId, NParents, NodeIdHash, NodeIdEqual>& rhs) { return !(lhs == rhs); }
 
     template<class NodeId, size_t NParents, class NodeIdHash, class NodeIdEqual>
     std::ostream& operator <<(std::ostream& output,
