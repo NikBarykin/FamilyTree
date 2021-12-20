@@ -13,13 +13,13 @@
 std::vector<std::string> Split(std::string_view sv, const std::string& delimiter=" ");
 
 
-template<typename T, typename THash>
-std::unordered_set<T, THash> UnorderedSetIntersection(const std::unordered_set<T, THash>& lhs,
-                                                      const std::unordered_set<T, THash>& rhs) {
+template<class T, class THash, class TEqual>
+std::unordered_set<T, THash, TEqual> UnorderedSetIntersection(const std::unordered_set<T, THash, TEqual>& lhs,
+                                                              const std::unordered_set<T, THash, TEqual>& rhs) {
     if (rhs.size() < lhs.size()) {
         return UnorderedSetIntersection(rhs, lhs);
     }
-    std::unordered_set<T, THash> result;
+    std::unordered_set<T, THash, TEqual> result;
     result.reserve(lhs.size());
     for (const T& el : lhs) {
         if (rhs.count(el)) {
@@ -27,6 +27,25 @@ std::unordered_set<T, THash> UnorderedSetIntersection(const std::unordered_set<T
         }
     }
     return result;
+}
+
+
+template<class T, class THash, class TEqual>
+bool IsSubset(const std::unordered_set<T, THash, TEqual>& potential_subset,
+              const std::unordered_set<T, THash, TEqual>& target_set) {
+    for (const T& el : potential_subset) {
+        if (!target_set.count(el)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+template<class T, class THash, class TEqual>
+bool UnorderedSetEqual(const std::unordered_set<T, THash, TEqual>& lhs,
+                             const std::unordered_set<T, THash, TEqual>& rhs) {
+    return IsSubset(lhs, rhs) && IsSubset(rhs, lhs);
 }
 
 
